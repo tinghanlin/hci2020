@@ -24,7 +24,8 @@ import pyglet
 import sys
 from playsound import playsound
 import time
-
+from pydub import AudioSegment
+from pydub.playback import play
 # speech recognition library
 # -------------------------------------#
 # threading so that listenting to speech would not block the whole program
@@ -65,9 +66,14 @@ seventeen = False
 eighteen = False
 move = True
 last = 15
-
+old_y = 0
+curr_y = 0
+old_x = 0
+curr_x = 0
 debug = 1
 
+direction_y = 0
+direction_x = 0
 # pitch & volume detection
 # -------------------------------------#
 # PyAudio object.
@@ -137,6 +143,14 @@ def middle():
     playsound('middle.mp3', False)
 def vertical_sep():
     playsound('vertical_separator.mp3', False)
+def bounce():
+    playsound('bounce.mp3', False)
+def up_audio():
+    playsound('up.mp3', False)
+def down_audio():
+    playsound('down.mp3', False)
+
+
 
 hit()
 # speech recognition functions using google api
@@ -325,11 +339,15 @@ class Model(object):
         b = self.ball
         if b.y - b.TO_SIDE < 0:
             up_bounce()
+            #bounce()
+            down_audio()
             illegal_movement = 0 - (b.y - b.TO_SIDE)
             b.y = 0 + b.TO_SIDE + illegal_movement
             b.vec_y *= -1
         elif b.y + b.TO_SIDE > self.HEIGHT:
             down_bounce()
+            #bounce()
+            up_audio()
             illegal_movement = self.HEIGHT - (b.y + b.TO_SIDE)
             b.y = self.HEIGHT - b.TO_SIDE + illegal_movement
             b.vec_y *= -1
@@ -376,6 +394,7 @@ class Model(object):
 
 # -------------- Ball position: you can find it here -------
     def update_ball(self):
+        global old_y, curr_y, direction_y,old_x, curr_x, direction_x
         """
             Update ball position with post-collision detection.
             I.e. Let the ball move out of bounds and calculate
@@ -387,11 +406,34 @@ class Model(object):
         self.i += 1  # "debug"
         b = self.ball
         b.x_old, b.y_old = b.x, b.y
+        old_y = b.y #I add this line
+        old_x = b.x #I add this line
+        #print("old_y", old_y)
         b.x += b.vec_x * self.ball_speed 
         b.y += b.vec_y * self.ball_speed
+        curr_y = b.y #I add this line
+        curr_x = b.x #I add this line
+        #print("curr_y", curr_y)
+        if curr_y-old_y>0:
+            #down
+            direction_y = 0
+        else:
+            #up
+            direction_y = 1
+            #print("up")
+
+        if curr_x-old_x>0:
+            #right
+            direction_x = 0
+            #print("right")
+        else:
+            #left
+            direction_x = 1
+            #print("left")
         self.check_if_oob_top_bottom()  # oob: out of bounds
         self.check_if_oob_sides()
         self.check_if_paddled()
+
         """
         frequency = b.x  # Our played note will be 440 Hz
         fs = 44100  # 44100 samples per second
@@ -414,36 +456,37 @@ class Model(object):
         # Wait for playback to finish before exiting
         play_obj.wait_done()
         """
-        if b.y >= 0 and b.y <= 4:
-            make_sound(130) 
-        elif b.y >= 42 and b.y < 47:
-            make_sound(145) 
-        elif b.y >= 73 and b.y < 77:
-            make_sound(162)
-        elif b.y >= 103 and b.y < 107:
-            make_sound(174)
-        elif b.y >= 133 and b.y < 137:
-            make_sound(187)
-        elif b.y >= 163 and b.y < 167:
-            make_sound(210)
-        elif b.y >= 193 and b.y < 197:
-            make_sound(237)
-        elif b.y >= 223 and b.y < 227:
-            make_sound(257)
-        elif b.y >= 253 and b.y < 257:
-            make_sound(280)
-        elif b.y >= 283 and b.y < 287:
-            make_sound(315)
-        elif b.y >= 313 and b.y < 317:
-            make_sound(345)
-        elif b.y >= 343 and b.y < 347:
-            make_sound(375)
-        elif b.y >= 373 and b.y < 377:
-            make_sound(420)
-        elif b.y >= 403 and b.y < 407:
-            make_sound(475)
-        elif b.y >= 433 and b.y < 437:
-            make_sound(525)
+        if direction_x == 1 and b.x < 500 :
+            if b.y >= 5.5 and b.y < 9.5:
+                make_sound(140) 
+            elif b.y >= 35.5 and b.y < 39.5:
+                make_sound(170) 
+            elif b.y >= 65.5 and b.y < 69.5:
+                make_sound(200)
+            elif b.y >= 95.5 and b.y < 99.5:
+                make_sound(230)
+            elif b.y >= 125.5 and b.y < 129.5:
+                make_sound(260)
+            elif b.y >= 155.5 and b.y < 159.5:
+                make_sound(290)
+            elif b.y >= 185.5 and b.y < 189.5:
+                make_sound(320)
+            elif b.y >= 215.5 and b.y < 219.5:
+                make_sound(350)
+            elif b.y >= 245.5 and b.y < 249.5:
+                make_sound(380)
+            elif b.y >= 275.5 and b.y < 279.5:
+                make_sound(410)
+            elif b.y >= 305.5 and b.y < 309.5:
+                make_sound(440)
+            elif b.y >= 335.5 and b.y < 339.5:
+                make_sound(470)
+            elif b.y >= 365.5 and b.y < 369.5:
+                make_sound(500)
+            elif b.y >= 395.5 and b.y < 399.5:
+                make_sound(530)
+            elif b.y >= 425.5 and b.y < 429.5:
+                make_sound(560)
             #make_noise = threading.Thread(target=make_sound(), args=())
             #make_noise.start()
 
@@ -527,90 +570,193 @@ class Model(object):
             # Format the volume output so that at most
             # it has six decimal numbers.
             volume = "{:.6f}".format(volume)
-            print (pitch)
-
-            if pitch == 0:
-                p1.y = last 
-                p1.last_movements.append(last)
-            elif pitch >=115 and pitch<135:
-                #d0
-                p1.y = 15
-                last = 15
-                p1.last_movements.append(15)
-            elif pitch >= 135 and pitch<155:
-                #re
-                p1.y = 45
-                last = 45
-                p1.last_movements.append(45)
-            elif pitch >= 155 and pitch<168:
-                #mi
-                p1.y = 75
-                last = 75
-                p1.last_movements.append(75)
-            elif pitch >= 168 and pitch<180:
-                #fa
-                p1.y = 105
-                last = 105
-                p1.last_movements.append(105)
-            elif pitch >= 180 and pitch<195:
-                #so
-                p1.y = 135
-                last = 135
-                p1.last_movements.append(135)
-            elif pitch >= 195 and pitch<225:
-                #la
-                p1.y = 165
-                last = 165
-                p1.last_movements.append(165)
-            # elif pitch >= 225 and pitch<250:
-            #     #ti
-            #     p1.y = 195
-            #     last = 195
-            #     p1.last_movements.append(195)
-            # elif pitch >= 250 and pitch<267:
-            #     #do
-            #     p1.y = 225
-            #     last = 225
-            #     p1.last_movements.append(225)
-            # elif pitch >= 267 and pitch<295:
-            #     #high re
-            #     p1.y = 255
-            #     last = 255
-            #     p1.last_movements.append(255)
-            # elif pitch >= 295 and pitch<330:
-            #     #high mi
-            #     p1.y = 285
-            #     last = 285
-            #     p1.last_movements.append(285)
-            # elif pitch >= 330 and pitch<360:
-            #     #high fa
-            #     p1.y = 315
-            #     last = 315
-            #     p1.last_movements.append(315)
-            # elif pitch >= 360 and pitch<395:
-            #     #high so
-            #     p1.y = 345
-            #     last = 345
-            #     p1.last_movements.append(345)
-            # elif pitch >= 395 and pitch<440:
-            #     #high la
-            #     p1.y = 375
-            #     last = 375
-            #     p1.last_movements.append(375)
-            # elif pitch >= 440 and pitch<490:
-            #     #high ti
-            #     p1.y = 405
-            #     last = 405
-            #     p1.last_movements.append(405)
-            # elif pitch >= 490 and pitch<550:
-            #     #high do
-            #     p1.y = 435
-            #     last = 435
-            #     p1.last_movements.append(435)
+            #print (pitch)
+            if direction_y ==0:
+                #down
+                if pitch == 0:
+                    p1.y = last 
+                    p1.last_movements.append(last)
+                # elif pitch >=115 and pitch<135:
+                #     #d0
+                #     p1.y = 15
+                #     last = 15
+                #     p1.last_movements.append(15)
+                # elif pitch >= 135 and pitch<155:
+                #     #re
+                #     p1.y = 45
+                #     last = 45
+                #     p1.last_movements.append(45)
+                # elif pitch >= 155 and pitch<168:
+                #     #mi
+                #     p1.y = 75
+                #     last = 75
+                #     p1.last_movements.append(75)
+                # elif pitch >= 168 and pitch<180:
+                #     #fa
+                #     p1.y = 105
+                #     last = 105
+                #     p1.last_movements.append(105)
+                # elif pitch >= 180 and pitch<195:
+                #     #so
+                #     p1.y = 135
+                #     last = 135
+                #     p1.last_movements.append(135)
+                # elif pitch >= 195 and pitch<225:
+                #     #la
+                #     p1.y = 165
+                #     last = 165
+                #     p1.last_movements.append(165)
+                # elif pitch >= 225 and pitch<250:
+                #     #ti
+                #     p1.y = 195
+                #     last = 195
+                #     p1.last_movements.append(195)
+                # elif pitch >= 250 and pitch<267:
+                #     #do
+                #     p1.y = 225
+                #     last = 225
+                #     p1.last_movements.append(225)
+                # elif pitch >= 267 and pitch<295:
+                #     #high re
+                #     p1.y = 255
+                #     last = 255
+                #     p1.last_movements.append(255)
+                # elif pitch >= 295 and pitch<330:
+                #     #high mi
+                #     p1.y = 285
+                #     last = 285
+                #     p1.last_movements.append(285)
+                # elif pitch >= 330 and pitch<360:
+                #     #high fa
+                #     p1.y = 315
+                #     last = 315
+                #     p1.last_movements.append(315)
+                # elif pitch >= 360 and pitch<395:
+                #     #high so
+                #     p1.y = 345
+                #     last = 345
+                #     p1.last_movements.append(345)
+                # elif pitch >= 395 and pitch<440:
+                #     #high la
+                #     p1.y = 375
+                #     last = 375
+                #     p1.last_movements.append(375)
+                # elif pitch >= 440 and pitch<490:
+                #     #high ti
+                #     p1.y = 405
+                #     last = 405
+                #     p1.last_movements.append(405)
+                # elif pitch >= 490 and pitch<550:
+                #     #high do
+                #     p1.y = 435
+                #     last = 435
+                #     p1.last_movements.append(435)
+                else:
+                    if pitch<140-60:
+                        p1.y = 15
+                        last = 15
+                        p1.last_movements.append(15)
+                    elif pitch>560-60:
+                        p1.y = 435
+                        last = 435
+                        p1.last_movements.append(435)
+                    else:
+                        p1.y = pitch-125+60 #prediction 
+                        last = pitch-125+60 #prediction 
+                        p1.last_movements.append(pitch-125+60)
             else:
-                p1.y = pitch
-                last = pitch
-                p1.last_movements.append(pitch)
+                #up
+                if pitch == 0:
+                    p1.y = last 
+                    p1.last_movements.append(last)
+                # elif pitch >=115 and pitch<135:
+                #     #d0
+                #     p1.y = 15
+                #     last = 15
+                #     p1.last_movements.append(15)
+                # elif pitch >= 135 and pitch<155:
+                #     #re
+                #     p1.y = 45
+                #     last = 45
+                #     p1.last_movements.append(45)
+                # elif pitch >= 155 and pitch<168:
+                #     #mi
+                #     p1.y = 75
+                #     last = 75
+                #     p1.last_movements.append(75)
+                # elif pitch >= 168 and pitch<180:
+                #     #fa
+                #     p1.y = 105
+                #     last = 105
+                #     p1.last_movements.append(105)
+                # elif pitch >= 180 and pitch<195:
+                #     #so
+                #     p1.y = 135
+                #     last = 135
+                #     p1.last_movements.append(135)
+                # elif pitch >= 195 and pitch<225:
+                #     #la
+                #     p1.y = 165
+                #     last = 165
+                #     p1.last_movements.append(165)
+                # elif pitch >= 225 and pitch<250:
+                #     #ti
+                #     p1.y = 195
+                #     last = 195
+                #     p1.last_movements.append(195)
+                # elif pitch >= 250 and pitch<267:
+                #     #do
+                #     p1.y = 225
+                #     last = 225
+                #     p1.last_movements.append(225)
+                # elif pitch >= 267 and pitch<295:
+                #     #high re
+                #     p1.y = 255
+                #     last = 255
+                #     p1.last_movements.append(255)
+                # elif pitch >= 295 and pitch<330:
+                #     #high mi
+                #     p1.y = 285
+                #     last = 285
+                #     p1.last_movements.append(285)
+                # elif pitch >= 330 and pitch<360:
+                #     #high fa
+                #     p1.y = 315
+                #     last = 315
+                #     p1.last_movements.append(315)
+                # elif pitch >= 360 and pitch<395:
+                #     #high so
+                #     p1.y = 345
+                #     last = 345
+                #     p1.last_movements.append(345)
+                # elif pitch >= 395 and pitch<440:
+                #     #high la
+                #     p1.y = 375
+                #     last = 375
+                #     p1.last_movements.append(375)
+                # elif pitch >= 440 and pitch<490:
+                #     #high ti
+                #     p1.y = 405
+                #     last = 405
+                #     p1.last_movements.append(405)
+                # elif pitch >= 490 and pitch<550:
+                #     #high do
+                #     p1.y = 435
+                #     last = 435
+                #     p1.last_movements.append(435)
+                else:
+                    if pitch<140+60:
+                        p1.y = 15
+                        last = 15
+                        p1.last_movements.append(15)
+                    elif pitch>560+60:
+                        p1.y = 435
+                        last = 435
+                        p1.last_movements.append(435)
+                    else:
+                        p1.y = pitch-125-60 #prediction 
+                        last = pitch-125-60 #prediction 
+                        p1.last_movements.append(pitch-125-60)
 
         if up == True: #change this to voice input, which goes up
             if p1.y < 12.5:
