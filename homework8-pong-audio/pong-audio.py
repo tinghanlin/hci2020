@@ -17,14 +17,18 @@
     Follow class wiki. 
     p.s.: this needs 10x10 image in the same directory: "white_square.png".
 """
-#native imports
+#native imports and other imports
 import math
 import random
 import pyglet
 import sys
 from playsound import playsound
 import time
-
+from pydub import AudioSegment
+from pydub.playback import play
+import simpleaudio as sa
+from gtts import gTTS
+import statistics
 # speech recognition library
 # -------------------------------------#
 # threading so that listenting to speech would not block the whole program
@@ -40,33 +44,27 @@ import numpy as num
 import pyaudio
 import wave
 # -------------------------------------#
-import numpy as np
-import simpleaudio as sa
+
+#define global variables
 quit = False
 up = False
 down = False
-one = False
-two = False
-three = False
-four = False
-five = False
-six = False
-seven = False
-eight = False
-nine = False
-ten = False
-eleven = False
-twelve = False
-thirteen = False
-fourteen = False
-fifteen = False
-sixteen = False
-seventeen = False
-eighteen = False
 move = True
-last = 15
-
+last_pos = 225
+old_y = 0
+curr_y = 0
+old_x = 0
+curr_x = 0
+score_flag = 0
+error = 0
+round_flag = 0
 debug = 1
+restart_flag = 0
+direction_y = 0
+direction_x = 0
+p_list=[]
+list_flag=0
+counter = 0
 
 # pitch & volume detection
 # -------------------------------------#
@@ -91,58 +89,24 @@ p2_score = 0
 #play some fun sounds?
 def hit():
     playsound('hit.wav', False)
-def one_audio():
-    playsound('one.mp3', False)
-def two_audio():
-    playsound('two.mp3', False)
-def three_audio():
-    playsound('three.mp3', False)
-def four_audio():
-    playsound('four.mp3', False)
-def five_audio():
-    playsound('five.mp3', False)
-def six_audio():
-    playsound('six.mp3', False)
-def seven_audio():
-    playsound('seven.mp3', False)
-def eight_audio():
-    playsound('eight.mp3', False)
-def nine_audio():
-    playsound('nine.mp3', False)
-def ten_audio():
-    playsound('ten.mp3', False)
-def eleven_audio():
-    playsound('eleven.mp3', False)
-def twelve_audio():
-    playsound('twelve.mp3', False)
-def thirteen_audio():
-    playsound('thirteen.mp3', False)
-def fourteen_audio():
-    playsound('fourteen.mp3', False)
-def fifteen_audio():
-    playsound('fifteen.mp3', False)
-def sixteen_audio():
-    playsound('sixteen.mp3', False)
-def seventeen_audio():
-    playsound('seventeen.mp3', False)
-def eighteen_audio():
-    playsound('eighteen.mp3', False)
 def up_bounce():
     playsound('up_bounce.mp3', False)
 def down_bounce():
     playsound('down_bounce.mp3', False)
-def coming():
-    playsound('coming.mp3', False)
-def middle():
-    playsound('middle.mp3', False)
-def vertical_sep():
-    playsound('vertical_separator.mp3', False)
 
-hit()
+#define a function that could read out the game status
+def speak(text, boolean):
+    tts = gTTS(text=text, lang="en")
+    filename = "voice.mp3"
+    tts.save(filename)
+    playsound(filename, boolean)
+
+speak("Game Start! Score 5 points to win the game!", False)
+
 # speech recognition functions using google api
 # -------------------------------------#
 def listen_to_speech():
-    global quit,move,up,down,one,two,three,four,five,six,seven,eight,nine,ten, eleven, twelve, thirteen, fourteen, fifteen
+    global quit,restart_flag,move,up,down
     while not quit:
         #input()
         print("[speech recognition] Say something!")
@@ -158,97 +122,42 @@ def listen_to_speech():
             recog_results = r.recognize_google(audio)
             print("[speech recognition] Google Speech Recognition thinks you said \"" + recog_results + "\"")
             # if recognizing quit and exit then exit the program
-
-            # if "move":
-            #     if "up":
-            #         if 1
-            #         if 2
-                
-
-            if "quit" in recog_results or "exit" in recog_results:
+            if "quit" in recog_results or "exit" in recog_results or "restart" in recog_results:
                 quit = True
-            elif "up" in recog_results or "move up" in recog_results or "go up" in recog_results:
-                up = True
-            elif "down" in recog_results or "move down" in recog_results or "go down" in recog_results:
-                down = True
-            elif "10" in recog_results or "ten" in recog_results:
-                ten = True
-            elif "11" in recog_results or "eleven" in recog_results:
-                eleven = True
-            elif "12" in recog_results or "twelve" in recog_results:
-                twelve = True
-            elif "13" in recog_results or "thirteen" in recog_results:
-                thirteen = True
-            elif "14" in recog_results or "fourteen" in recog_results:
-                fourteen = True
-            elif "15" in recog_results or "fifteen" in recog_results:
-                fifteen = True
-            elif "1" in recog_results or "one" in recog_results:
-                one = True
-            elif "2" in recog_results or "two" in recog_results or "too" in recog_results or "to" in recog_results:
-                two = True
-            elif "3" in recog_results or "three" in recog_results:
-                three = True
-            elif "4" in recog_results or "four" in recog_results or "for" in recog_results or "fore" in recog_results:
-                four = True
-            elif "5" in recog_results or "five" in recog_results:
-                five = True
-            elif "6" in recog_results or "six" in recog_results or "sics" in recog_results:
-                six = True
-            elif "7" in recog_results or "seven" in recog_results:
-                seven = True
-            elif "8" in recog_results or "eight" in recog_results:
-                eight = True
-            elif "9" in recog_results or "nine" in recog_results:
-                nine = True
 
         except sr.UnknownValueError:
             print("[speech recognition] Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
             print("[speech recognition] Could not request results from Google Speech Recognition service; {0}".format(e))
+    
+
 # -------------------------------------#
 # pitch & volume detection
 # -------------------------------------#
 def sense_microphone():
-    global quit,move,up,down,one,two,three,four,five,six,seven,eight,nine,ten, eleven, twelve, thirteen, fourteen, fifteen
+    global quit,move,up,down
     while not quit:
         data = stream.read(1024,exception_on_overflow=False)
-        samples = num.fromstring(data,
+        samples = num.frombuffer(data,
             dtype=aubio.float_type)
-
         # Compute the pitch of the microphone input
         pitch = pDetection(samples)[0]
-        # Compute the energy (volume) of the mic input
-        volume = num.sum(samples**2)/len(samples)
-        # Format the volume output so that at most
-        # it has six decimal numbers.
-        volume = "{:.6f}".format(volume)
-
-        # uncomment these lines if you want pitch or volume
-        # print("p"+str(pitch))
-        # print("v"+str(volume))
 # -------------------------------------#
+#learn the code from this website: https://simpleaudio.readthedocs.io/en/latest/simpleaudio.html
 def make_sound(i):
-    frequency = i # Our played note will be 440 Hz
-    fs = 44100  # 44100 samples per second
-    seconds = 0.8  # Note duration of 3 seconds
-
-    # Generate array with seconds*sample_rate steps, ranging between 0 and seconds
-    t = np.linspace(0, seconds, seconds * fs, False)
-
-    # Generate a 440 Hz sine wave
-    note = np.sin(frequency * t * 2 * np.pi)
-
-    # Ensure that highest value is in 16-bit range
-    audio = note * (2**15 - 1) / np.max(np.abs(note))
-    # Convert to 16-bit data
-    audio = audio.astype(np.int16)
-
-    # Start playback
+    freq = i #in units of Hz
+    fs = 44100  #44100 samples every second by convention
+    sec = 0.6  #duration of the sound
+    #create an array with seconds*sample_rate steps
+    t = num.linspace(0, sec, sec * fs, False)
+    #create sine wave
+    note = num.sin(freq * t * 2 * num.pi)
+    #check thins are in 16-bit range
+    audio = note * (2**15 - 1) / num.max(num.abs(note))
+    #convert to 16-bit data
+    audio = audio.astype(num.int16)
+    #play sound
     play_obj = sa.play_buffer(audio, 1, 2, fs)
-
-    # Wait for playback to finish before exiting
-    #play_obj.wait_done()
 
 class Ball(object):
 
@@ -270,7 +179,7 @@ class Player(object):
         self.x = 50.0 + (screen_WIDTH - 100) * NUMBER
         self.y = 50.0
         self.last_movements = [0]*4  # short movement history
-                                     # used for bounce calculation
+                                    # used for bounce calculation
         self.up_key, self.down_key = None, None
         if NUMBER == 0:
             self.up_key = pyglet.window.key.W
@@ -302,6 +211,7 @@ class Model(object):
     def reset_ball(self, who_scored):
         """Place the ball anew on the loser's side."""
         if debug: print(str(who_scored)+" scored. reset.")
+        
         self.ball.y = float( random.randint(0, self.HEIGHT) )
         self.ball.vec_y = random.choice([-1, 1]) * 2**0.5 / 2
         if who_scored == 0:
@@ -318,18 +228,24 @@ class Model(object):
             self.ball.debug += 0.2
             if self.ball.debug > 100:
                 self.ball.debug = 0
-
+        
     def check_if_oob_top_bottom(self):
         """Called by update_ball to recalc. a ball above/below the screen."""
         # bounces. if -- bounce on top of screen. elif -- bounce on bottom.
         b = self.ball
         if b.y - b.TO_SIDE < 0:
-            up_bounce()
+            down_bounce() #noise indicate bounce
+            #indicate game status
+            ball_bounce = threading.Thread(target=speak("bounce down",False), args=())
+            ball_bounce.start()
             illegal_movement = 0 - (b.y - b.TO_SIDE)
             b.y = 0 + b.TO_SIDE + illegal_movement
             b.vec_y *= -1
         elif b.y + b.TO_SIDE > self.HEIGHT:
-            down_bounce()
+            up_bounce() #noise indicate bounce
+            #indicate game status
+            ball_bounce = threading.Thread(target=speak("bounce up",False), args=())
+            ball_bounce.start()
             illegal_movement = self.HEIGHT - (b.y + b.TO_SIDE)
             b.y = self.HEIGHT - b.TO_SIDE + illegal_movement
             b.vec_y *= -1
@@ -341,12 +257,16 @@ class Model(object):
         if b.x + b.TO_SIDE < 0:  # leave on left
             self.reset_ball(1)
             p2_score+=1
+            speak("Goal"+str(p1_score)+"to"+str(p2_score),True)
+
         elif b.x - b.TO_SIDE > self.WIDTH:  # leave on right
             p1_score+=1
             self.reset_ball(0)
+            speak("Goal"+str(p1_score)+"to"+str(p2_score),True)
 
     def check_if_paddled(self): 
         """Called by update_ball to recalc. a ball hit with a player paddle."""
+        global round_flag, error
         b = self.ball
         p0, p1 = self.players[0], self.players[1]
         angle = math.acos(b.vec_y)  
@@ -354,9 +274,16 @@ class Model(object):
         cross0 = (b.x < p0.x + 2*b.TO_SIDE) and (b.x_old >= p0.x + 2*b.TO_SIDE)
         cross1 = (b.x > p1.x - 2*b.TO_SIDE) and (b.x_old <= p1.x - 2*b.TO_SIDE)
         if cross0 and -25 < b.y - p0.y < 25:
+            if round_flag == 0:
+                error = random.choice([-30,0,30])
+                round_flag =1
+            elif round_flag == 1:
+                error = random.choice([-30,0,30])
+                round_flag =0
             #playhit = threading.Thread(target=hit(), args=())
             #playhit.start()
             hit()
+            speak("Player 1 Hit!", False)
             if debug: print("hit at "+str(self.i))
             illegal_movement = p0.x + 2*b.TO_SIDE - b.x
             b.x = p0.x + 2*b.TO_SIDE + illegal_movement
@@ -366,7 +293,14 @@ class Model(object):
         elif cross1 and -25 < b.y - p1.y < 25:
             #playhit = threading.Thread(target=hit(), args=())
             #playhit.start()
+            if round_flag == 0:
+                error = random.choice([-30,0,30])
+                round_flag =1
+            elif round_flag == 1:
+                error = random.choice([-30,0,30])
+                round_flag =0
             hit()
+            speak("Player 2 Hit!", False)
             if debug: print("hit at "+str(self.i))
             illegal_movement = p1.x - 2*b.TO_SIDE - b.x
             b.x = p1.x - 2*b.TO_SIDE + illegal_movement
@@ -374,8 +308,10 @@ class Model(object):
             b.vec_y = math.cos(angle)
             b.vec_x = - (1**2 - b.vec_y**2) ** 0.5
 
+
 # -------------- Ball position: you can find it here -------
     def update_ball(self):
+        global score_flag,old_y, curr_y, direction_y,old_x, curr_x, direction_x
         """
             Update ball position with post-collision detection.
             I.e. Let the ball move out of bounds and calculate
@@ -385,118 +321,95 @@ class Model(object):
             consideration as well. Add a small factor of random too.
         """
         self.i += 1  # "debug"
-        b = self.ball
+        b = self.ball     
         b.x_old, b.y_old = b.x, b.y
+        old_y = b.y #record old y
+        old_x = b.x #record old x 
         b.x += b.vec_x * self.ball_speed 
         b.y += b.vec_y * self.ball_speed
+        
+
+        curr_y = b.y #record new y
+        curr_x = b.x #record new x
+        
+        #detect whether the ball is going up or down
+        if curr_y-old_y>0:
+            #down
+            direction_y = 0
+        else:
+            #up
+            direction_y = 1
+
+        #detect whether the ball is going right or left
+        if curr_x-old_x>0:
+            #right
+            direction_x = 0
+        else:
+            #left
+            direction_x = 1
+
+        # if 75 >b.x and b.x> 71:
+        #     make_sound(100)
+        #make sound to indicate the ball position
+        if direction_x == 1 and b.x < 500 and b.x> 100:
+            if b.y >= 5.5 and b.y < 9.5:
+                make_sound(140) 
+            elif b.y >= 35.5 and b.y < 39.5:
+                make_sound(170) 
+            elif b.y >= 65.5 and b.y < 69.5:
+                make_sound(200)
+            elif b.y >= 95.5 and b.y < 99.5:
+                make_sound(230)
+            elif b.y >= 125.5 and b.y < 129.5:
+                make_sound(260)
+            elif b.y >= 155.5 and b.y < 159.5:
+                make_sound(290)
+            elif b.y >= 185.5 and b.y < 189.5:
+                make_sound(320)
+            elif b.y >= 215.5 and b.y < 219.5:
+                make_sound(350)
+            elif b.y >= 245.5 and b.y < 249.5:
+                make_sound(380)
+            elif b.y >= 275.5 and b.y < 279.5:
+                make_sound(410)
+            elif b.y >= 305.5 and b.y < 309.5:
+                make_sound(440)
+            elif b.y >= 335.5 and b.y < 339.5:
+                make_sound(470)
+            elif b.y >= 365.5 and b.y < 369.5:
+                make_sound(500)
+            elif b.y >= 395.5 and b.y < 399.5:
+                make_sound(530)
+            elif b.y >= 425.5 and b.y < 429.5:
+                make_sound(560)
+        
         self.check_if_oob_top_bottom()  # oob: out of bounds
         self.check_if_oob_sides()
         self.check_if_paddled()
-        """
-        frequency = b.x  # Our played note will be 440 Hz
-        fs = 44100  # 44100 samples per second
-        seconds = 0.4  # Note duration of 3 seconds
 
-        # Generate array with seconds*sample_rate steps, ranging between 0 and seconds
-        t = np.linspace(0, seconds, seconds * fs, False)
+        #indicate status of the game
+        if score_flag ==1:
+            speak ("Player 1 won!", True)
+            speak ("Quit and restart a new game!", True)
+            speech_thread = threading.Thread(target=listen_to_speech, args=())
+            speech_thread.start()
+            
+        elif score_flag ==2:
+            speak ("Player 2 won!", True)
+            speak ("Quit and restart a new game!", True)
+            speech_thread = threading.Thread(target=listen_to_speech, args=())
+            speech_thread.start()
+            
+        #indicate status of the game
+        if p1_score >=5:
+            score_flag=1
+        elif p2_score >=5:
+            score_flag=2
 
-        # Generate a 440 Hz sine wave
-        note = np.sin(frequency * t * 2 * np.pi)
 
-        # Ensure that highest value is in 16-bit range
-        audio = note * (2**15 - 1) / np.max(np.abs(note))
-        # Convert to 16-bit data
-        audio = audio.astype(np.int16)
-
-        # Start playback
-        play_obj = sa.play_buffer(audio, 1, 2, fs)
-
-        # Wait for playback to finish before exiting
-        play_obj.wait_done()
-        """
-        if b.y >= 0 and b.y <= 4:
-            make_sound(130) 
-        elif b.y >= 42 and b.y < 47:
-            make_sound(145) 
-        elif b.y >= 73 and b.y < 77:
-            make_sound(162)
-        elif b.y >= 103 and b.y < 107:
-            make_sound(174)
-        elif b.y >= 133 and b.y < 137:
-            make_sound(187)
-        elif b.y >= 163 and b.y < 167:
-            make_sound(210)
-        elif b.y >= 193 and b.y < 197:
-            make_sound(237)
-        elif b.y >= 223 and b.y < 227:
-            make_sound(257)
-        elif b.y >= 253 and b.y < 257:
-            make_sound(280)
-        elif b.y >= 283 and b.y < 287:
-            make_sound(315)
-        elif b.y >= 313 and b.y < 317:
-            make_sound(345)
-        elif b.y >= 343 and b.y < 347:
-            make_sound(375)
-        elif b.y >= 373 and b.y < 377:
-            make_sound(420)
-        elif b.y >= 403 and b.y < 407:
-            make_sound(475)
-        elif b.y >= 433 and b.y < 437:
-            make_sound(525)
-            #make_noise = threading.Thread(target=make_sound(), args=())
-            #make_noise.start()
-
-        #if b.x > 790 and b.x < 800 :
-        #    coming() #signaling the ball is coming
-        #if b.x > 398 and b.x < 403 :
-        #    vertical_sep() 
-        #if b.y >= 198 and b.y <= 202 :
-        #    middle() #signaling the ball is coming
-        # p1 = self.players[0]
-        # if p1.y > b.y-25 and p1.y < b.y+25: 
-        #     vertical_sep()
-
-        # checkpoint_list = [100,150,200,250,300]    
-        """
-        for i in checkpoint_list:
-            if b.x > i and b.x < i+5 :
-                if b.y >= 0 and b.y < 30:
-                    one_audio()
-                elif b.y >= 30 and b.y < 60:
-                    two_audio()
-                elif b.y >= 60 and b.y < 90:
-                    three_audio()
-                elif b.y >= 90 and b.y < 120:
-                    four_audio()
-                elif b.y >= 120 and b.y < 150:
-                    five_audio()
-                elif b.y >= 150 and b.y < 180:
-                    six_audio()
-                elif b.y >= 180 and b.y < 210:
-                    seven_audio()
-                elif b.y >= 210 and b.y < 240:
-                    eight_audio()
-                elif b.y >= 240 and b.y < 270:
-                    nine_audio()
-                elif b.y >= 270 and b.y < 300:
-                    ten_audio()
-                elif b.y >= 300 and b.y < 330:
-                    eleven_audio()
-                elif b.y >= 330 and b.y < 360:
-                    twelve_audio()
-                elif b.y >= 360 and b.y < 390:
-                    thirteen_audio()
-                elif b.y >= 390 and b.y < 420:
-                    fourteen_audio()
-                elif b.y >= 420 and b.y < 450:
-                    fifteen_audio()
-        """
-        
-        
     def update(self):
         """Work through all pressed keys, update and call update_ball."""
-        global quit,last,move,up,down,one,two,three,four,five,six,seven,eight,nine,ten, eleven, twelve, thirteen, fourteen, fifteen
+        global quit,error,last_pos,move,up,down,direction_y,p_list,list_flag,counter
         pks = self.pressed_keys
         if quit:
             sys.exit(1)
@@ -511,106 +424,107 @@ class Model(object):
         # player 1: the user controls the left player by W/S but you should change it to VOICE input
         p1 = self.players[0]
         p1.last_movements.pop(0)
-        #do 125-135
-        #re 135-160
-        #me 160-180
-        #fa 170-180
-        #so
-        if move == True:
-            data = stream.read(1024,exception_on_overflow=False)
-            samples = num.fromstring(data,
-                dtype=aubio.float_type)
-            pitch = pDetection(samples)[0]
-            # Compute the energy (volume) of the
-            # current frame.
-            volume = num.sum(samples**2)/len(samples)
-            # Format the volume output so that at most
-            # it has six decimal numbers.
-            volume = "{:.6f}".format(volume)
-            print (pitch)
+        b = self.ball
+        
+        data = stream.read(1024,exception_on_overflow=False)
+        samples = num.frombuffer(data, dtype=aubio.float_type)
+        pitch = pDetection(samples)[0] #use the pitch to control
+        #print("pitch",pitch)  
 
-            if pitch == 0:
-                p1.y = last 
-                p1.last_movements.append(last)
-            elif pitch >=115 and pitch<135:
-                #d0
-                p1.y = 15
-                last = 15
-                p1.last_movements.append(15)
-            elif pitch >= 135 and pitch<155:
-                #re
-                p1.y = 45
-                last = 45
-                p1.last_movements.append(45)
-            elif pitch >= 155 and pitch<168:
-                #mi
-                p1.y = 75
-                last = 75
-                p1.last_movements.append(75)
-            elif pitch >= 168 and pitch<180:
-                #fa
-                p1.y = 105
-                last = 105
-                p1.last_movements.append(105)
-            elif pitch >= 180 and pitch<195:
-                #so
-                p1.y = 135
-                last = 135
-                p1.last_movements.append(135)
-            elif pitch >= 195 and pitch<225:
-                #la
-                p1.y = 165
-                last = 165
-                p1.last_movements.append(165)
-            # elif pitch >= 225 and pitch<250:
-            #     #ti
-            #     p1.y = 195
-            #     last = 195
-            #     p1.last_movements.append(195)
-            # elif pitch >= 250 and pitch<267:
-            #     #do
-            #     p1.y = 225
-            #     last = 225
-            #     p1.last_movements.append(225)
-            # elif pitch >= 267 and pitch<295:
-            #     #high re
-            #     p1.y = 255
-            #     last = 255
-            #     p1.last_movements.append(255)
-            # elif pitch >= 295 and pitch<330:
-            #     #high mi
-            #     p1.y = 285
-            #     last = 285
-            #     p1.last_movements.append(285)
-            # elif pitch >= 330 and pitch<360:
-            #     #high fa
-            #     p1.y = 315
-            #     last = 315
-            #     p1.last_movements.append(315)
-            # elif pitch >= 360 and pitch<395:
-            #     #high so
-            #     p1.y = 345
-            #     last = 345
-            #     p1.last_movements.append(345)
-            # elif pitch >= 395 and pitch<440:
-            #     #high la
-            #     p1.y = 375
-            #     last = 375
-            #     p1.last_movements.append(375)
-            # elif pitch >= 440 and pitch<490:
-            #     #high ti
-            #     p1.y = 405
-            #     last = 405
-            #     p1.last_movements.append(405)
-            # elif pitch >= 490 and pitch<550:
-            #     #high do
-            #     p1.y = 435
-            #     last = 435
-            #     p1.last_movements.append(435)
-            else:
-                p1.y = pitch
-                last = pitch
+        if direction_y ==0:
+            #down
+            if pitch !=0 and list_flag == 0:
+                #init list_flag
+                list_flag = 1
+                p1.last_movements.append(0)
+                counter+=1
+                #we don't append the first pitch
+
+            elif counter == 3 and list_flag == 1:
+            
+                clean_list = [x for x in p_list if x < 900]
+                if clean_list:
+                    move = statistics.median(clean_list)
+                    #print ("down move")
+                    if move == 0:
+                        # remain at the last position
+                        p1.y = last_pos 
+                        p1.last_movements.append(last_pos)
+                    else:
+                        if move<140-60:
+                            p1.y = 15
+                            last_pos = 15
+                            p1.last_movements.append(15)
+                        elif move>560-60:
+                            p1.y = 435
+                            last_pos = 435
+                            p1.last_movements.append(435)
+                        else:
+                            p1.y = move-125+60 #prediction 
+                            last_pos = move-125+60 #prediction 
+                            p1.last_movements.append(move-125+60)
+                
+                list_flag = 0
+                p_list = []
+                counter = 0
+                
+            elif pitch !=0 and list_flag == 1:
+                counter+=1
+                p_list.append(pitch)
+                #last_pit = pitch
                 p1.last_movements.append(pitch)
+                #print ("counter", counter)
+            else:
+                p1.y = last_pos 
+                #last_pit = pitch
+                p1.last_movements.append(last_pos)
+        else:
+            #up
+            if pitch !=0 and list_flag == 0:
+                #init list_flag
+                list_flag = 1
+                p1.last_movements.append(0)
+                counter+=1
+                #we don't append the first pitch
+
+            elif counter == 3 and list_flag == 1:
+            
+                clean_list = [x for x in p_list if x < 900]
+                if clean_list:
+                    move = statistics.median(clean_list)
+                    #print ("up move")
+                    if move == 0:
+                        p1.y = last_pos 
+                        p1.last_movements.append(last_pos)
+                    else:
+                        if move<140+60:
+                            p1.y = 15
+                            last_pos = 15
+                            p1.last_movements.append(15)
+                        elif move>560+60:
+                            p1.y = 435
+                            last_pos = 435
+                            p1.last_movements.append(435)
+                        else:
+                            p1.y = move-125-60 #prediction 
+                            last_pos = move-125-60 #prediction 
+                            p1.last_movements.append(move-125-60)
+
+                list_flag = 0
+                p_list = []
+                counter = 0
+
+            elif pitch !=0 and list_flag == 1:
+                counter+=1
+                p_list.append(pitch)
+                #last_pit = pitch
+                p1.last_movements.append(pitch)
+                #print ("counter", counter)
+            
+            else:
+                p1.y = last_pos 
+                #last_pit = pitch
+                p1.last_movements.append(last_pos) 
 
         if up == True: #change this to voice input, which goes up
             if p1.y < 12.5:
@@ -626,71 +540,54 @@ class Model(object):
                 p1.y += self.speed+25
                 p1.last_movements.append(+self.speed+25)
                 down = False
-        elif one == True: 
-            p1.y = 15 #15
-            p1.last_movements.append(15)
-            one = False
-        elif two == True: 
-            p1.y = 45 #15+30*1
-            p1.last_movements.append(45)
-            two = False
-        elif three == True: 
-            p1.y = 75 #15+30*2
-            p1.last_movements.append(75)
-            three = False
-        elif four == True: 
-            p1.y = 105 #15+30*3
-            p1.last_movements.append(105)
-            four = False
-        elif five == True: 
-            p1.y = 135 #15+30*4
-            p1.last_movements.append(135)
-            five = False
-        elif six == True: 
-            p1.y = 165 #15+30*5
-            p1.last_movements.append(165)
-            six = False
-        elif seven == True: 
-            p1.y = 195 #15+30*6
-            p1.last_movements.append(195)
-            seven = False
-        elif eight == True: 
-            p1.y = 225 #15+30*7
-            p1.last_movements.append(225)
-            eight = False
-        elif nine == True: 
-            p1.y = 255 #15+30*8
-            p1.last_movements.append(255)
-            nine = False
-        elif ten == True: 
-            p1.y = 285 #15+30*9
-            p1.last_movements.append(285)
-            ten = False
-        elif eleven == True: 
-            p1.y = 315 #15+30*10
-            p1.last_movements.append(315)
-            eleven = False
-        elif twelve == True: 
-            p1.y = 345 #15+30*11
-            p1.last_movements.append(345)
-            twelve = False
-        elif thirteen == True: 
-            p1.y = 375 #15+30*12
-            p1.last_movements.append(375)
-            thirteen = False
-        elif fourteen == True: 
-            p1.y = 405 #15+30*13
-            p1.last_movements.append(405)
-            fourteen = False
-        elif fifteen == True: 
-            p1.y = 435 #15+30*14
-            p1.last_movements.append(435)
-            fifteen = False
+        
         else:
             # notice how we popped from _place_ zero,
             # but append _a number_ zero here. it's not the same.
             p1.last_movements.append(0)
-           
+        
+        if direction_x == 1 and b.x < 80 and b.x > 76:
+            
+            if b.y+15 > p1.y+60 and p1.y+60 > b.y-15:
+                #print ("adjust down 60!")
+                if p1.y+60> 560:
+                    p1.y = 435
+                    last_pos = 435
+                    p1.last_movements.append(435)
+                else:
+                    p1.y += 60
+                    last_pos = p1.y
+                    p1.last_movements.append(p1.y) 
+            elif b.y+15 > p1.y-60 and p1.y-60 > b.y-15:
+                #print ("adjust up 60!")
+                if p1.y-60> 140:
+                    p1.y = 15
+                    last_pos = 15
+                    p1.last_movements.append(15)
+                else:
+                    p1.y -= 60
+                    last_pos = p1.y
+                    p1.last_movements.append(p1.y) 
+            elif b.y+15 > p1.y+30 and p1.y+30 > b.y-15:
+                #print ("adjust down 30!")
+                if p1.y+60> 560:
+                    p1.y = 435
+                    last_pos = 435
+                    p1.last_movements.append(435)
+                else:
+                    p1.y += 30
+                    last_pos = p1.y
+                    p1.last_movements.append(p1.y)
+            elif b.y+15 > p1.y-30 and p1.y-30 > b.y-15:
+                #print ("adjust up 30!")
+                if p1.y-60> 140:
+                    p1.y = 15
+                    last_pos = 15
+                    p1.last_movements.append(15)
+                else:
+                    p1.y -= 30
+                    last_pos = p1.y
+                    p1.last_movements.append(p1.y) 
         # ----------------- DO NOT CHANGE BELOW ----------------
         # player 2: the other user controls the right player by O/L
         p2 = self.players[1]
@@ -702,9 +599,19 @@ class Model(object):
             p2.y += self.speed
             p2.last_movements.append(+self.speed)
         else:
+            b = self.ball
+            temp = b.y+error #I made a simple opponet that has random chances to make mistakes
+            p2.y = temp
+            p2.last_movements.append(temp)
+            if temp < 15:
+                p2.y = 15
+                p2.last_movements.append(15)
+            elif temp > 435:
+                p2.y = 435
+                p2.last_movements.append(435)
             # notice how we popped from _place_ zero,
             # but append _a number_ zero here. it's not the same.
-            p2.last_movements.append(0)
+            #p2.last_movements.append(0)
 
         self.update_ball()
         label.text = str(p1_score)+':'+str(p2_score)
@@ -796,16 +703,17 @@ def on_draw():
     label.draw()
 
 # speech recognition thread
+#-------------------------------------#
+#start a thread to listen to speech
+# speech_thread = threading.Thread(target=listen_to_speech, args=())
+# speech_thread.start()
 # -------------------------------------#
-# start a thread to listen to speech
-speech_thread = threading.Thread(target=listen_to_speech, args=())
-speech_thread.start()
-# -------------------------------------#
+
 # pitch & volume detection
 # -------------------------------------#
 # start a thread to detect pitch and volume
-microphone_thread = threading.Thread(target=sense_microphone, args=())
-microphone_thread.start()
+# microphone_thread = threading.Thread(target=sense_microphone, args=())
+# microphone_thread.start()
 # -------------------------------------#
 
 if debug: print("init window...")
